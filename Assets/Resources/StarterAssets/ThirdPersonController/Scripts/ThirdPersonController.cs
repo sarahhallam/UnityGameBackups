@@ -2,12 +2,13 @@
 #if ENABLE_INPUT_SYSTEM 
 using UnityEngine.InputSystem;
 #endif
+using System;
+using System.Linq;
 
 /* Note: animations are called via the controller for both the character and capsule using animator null checks
  */
 
-namespace StarterAssets
-{
+
     [RequireComponent(typeof(CharacterController))]
 #if ENABLE_INPUT_SYSTEM 
     [RequireComponent(typeof(PlayerInput))]
@@ -75,6 +76,10 @@ namespace StarterAssets
         [Tooltip("For locking the camera position on all axis")]
         public bool LockCameraPosition = false;
 
+        // Setup for Elixir of Life Game
+        public static ThirdPersonController instance;
+        public static Action<String> onCollectItem;
+
         // cinemachine
         private float _cinemachineTargetYaw;
         private float _cinemachineTargetPitch;
@@ -122,9 +127,34 @@ namespace StarterAssets
             }
         }
 
+        void MakeSingleton()
+        {
+            if (instance == null)
+            {
+                instance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+            else
+            {
+                Debug.Log("Oh no!  I'm being deleted!!");
+                Destroy(gameObject);
+            }
+        }
+
+
+        private void OnTriggerEnter(Collider other)
+        {
+            string[] items = { "Diamond", "Heart" };
+            if (items.Contains(other.tag))
+            {
+                onCollectItem?.Invoke(other.tag);
+                Destroy(other.gameObject);
+            }
+        }
 
         private void Awake()
         {
+            MakeSingleton();
             // get a reference to our main camera
             if (_mainCamera == null)
             {
@@ -366,7 +396,7 @@ namespace StarterAssets
             {
                 if (FootstepAudioClips.Length > 0)
                 {
-                    var index = Random.Range(0, FootstepAudioClips.Length);
+                    var index = UnityEngine.Random.Range(0, FootstepAudioClips.Length);
                     AudioSource.PlayClipAtPoint(FootstepAudioClips[index], transform.TransformPoint(_controller.center), FootstepAudioVolume);
                 }
             }
@@ -381,4 +411,3 @@ namespace StarterAssets
         }
 
     }
-}
